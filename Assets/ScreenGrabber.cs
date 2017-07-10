@@ -8,36 +8,22 @@ using UnityEngine;
 public class ScreenGrabber : MonoBehaviour
 {
     [DllImport("Plugin")]
-    static extern int Foo();
-
-    [DllImport("Plugin")]
     private static extern IntPtr GetRenderEventFunc();
 
-    [DllImport("Plugin")]
-    private static extern IntPtr MakeGrabTexture(uint width, uint height);
-
-
-    Texture2D tex;
 
     IEnumerator Start()
     {
-        //tex = new Texture2D(Screen.width, Screen.height);
-
-        IntPtr p = MakeGrabTexture((uint)Screen.width, (uint)Screen.height);
-        tex = Texture2D.CreateExternalTexture(Screen.width, Screen.height, TextureFormat.RGBA32, false, true, p);
-
         yield return StartCoroutine("CallPluginAtEndOfFrames");
     }
 
     private IEnumerator CallPluginAtEndOfFrames()
     {
+        GL.IssuePluginEvent(GetRenderEventFunc(), 0);
         while (true)
         {
             // Wait until all frame rendering is done
             yield return new WaitForEndOfFrame();
 
-            tex.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
-            tex.Apply();
 
             // Issue a plugin event with arbitrary integer identifier.
             // The plugin can distinguish between different
@@ -47,11 +33,7 @@ public class ScreenGrabber : MonoBehaviour
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
             GL.IssuePluginEvent(GetRenderEventFunc(), 2);
-            var x = tex.GetRawTextureData();
 
-            File.WriteAllBytes(@"C:\Users\brab\meep", x);
-
-            break;
 
         }
     }
