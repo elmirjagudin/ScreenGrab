@@ -51,13 +51,10 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 
 ID3D11Resource *screenResource;
 
-char *rawBuffer;
-
+//char *rawBuffer;
+ID3D11RenderTargetView *targetView;
 void InitMeep()
 {
-	ID3D11RenderTargetView *targetView;
-	
-
 	m_Device->GetImmediateContext(&context);
 	context->OMGetRenderTargets(1, &targetView, NULL);
 
@@ -79,7 +76,8 @@ void InitMeep()
 	description.SampleDesc.Count = 1;
 	
 	printf(" Width %d Height %d MipLevels %d  ArraySize %d Format %d  Usage %d BindFlags %d CPUAccessFlags %d MiscFlags %d\n",
-		description.Width, description.Height, description.MipLevels, description.ArraySize, description.Format, description.Usage, description.BindFlags, description.CPUAccessFlags, description.MiscFlags);
+		description.Width, description.Height, description.MipLevels, description.ArraySize, description.Format,
+		description.Usage, description.BindFlags, description.CPUAccessFlags, description.MiscFlags);
 
 	printf("sample desk Count %d Quality %d\n", description.SampleDesc.Count, description.SampleDesc.Quality);
 
@@ -98,7 +96,7 @@ void InitMeep()
 	screenWidth = description.Width;
 	screenHeight = description.Height;
 
-	rawBuffer = (char*)malloc(screenWidth * screenHeight * 4);
+	//rawBuffer = (char*)malloc(screenWidth * screenHeight * 4);
 
 }
 
@@ -110,86 +108,74 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 
 void CopyScreen()
 {
+	InitMeep();
+
 	context->CopyResource(screenCopyTexture, screenResource);
+
+	//screenResource->Release();
+	//targetView->Release();
 }
 
+D3D11_MAPPED_SUBRESOURCE resource;
+unsigned int subresource;
 
-//extern "C" UNITY_INTERFACE_EXPORT ID3D11ShaderResourceView* UNITY_INTERFACE_API MakeGrabTexture(UINT width, UINT height)
-//{
-//	screenWidth = width;
-//	screenHeight = height;
-//
-//	printf("creating grab texture %d %d\n", screenWidth, screenHeight);
-//	D3D11_TEXTURE2D_DESC description;
-//
-//	description.Width = width;
-//	description.Height = height;
-//	description.MipLevels = 1;
-//	description.ArraySize = 1;
-//	description.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//	description.SampleDesc.Count = 1;
-//	description.SampleDesc.Quality = 0;
-//	description.MiscFlags = 0;
-//	//description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-//	description.BindFlags = 0;
-//	description.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
-//	description.Usage = D3D11_USAGE_STAGING;
-//
-//	auto res = m_Device->CreateTexture2D(&description, NULL, &grabTexture);
-//
-//	printf("grabTexture %p res %x S_OK %x\n", grabTexture, res, S_OK);
-//
-//	res = m_Device->CreateShaderResourceView(
-//		grabTexture,
-//		NULL,
-//		&resourceView);
-//	printf("resource view %p res %x", resourceView, res);
-//
-//	return resourceView;
-//}
+extern "C"  UNITY_INTERFACE_EXPORT void* UNITY_INTERFACE_API GetMappedResource(UINT *width, UINT *height, UINT *RowPitch)
+{
+	*width = screenWidth;
+	*height = screenHeight;
+	*RowPitch = resource.RowPitch;
 
+	printf("GetMappedResource: screenWidth %d screenHeight %d resource.RowPitch %d\n", screenWidth, screenHeight, resource.RowPitch);
+	printf("GetMappedResource: *width %d *height %d *RowPitch %d\n", *width, *height, *RowPitch);
+
+	return resource.pData;
+}
 
 
 void ssMap()
 {
-	D3D11_MAPPED_SUBRESOURCE resource;
-	unsigned int subresource = D3D11CalcSubresource(0, 0, 0);
+	subresource = D3D11CalcSubresource(0, 0, 0);
 
 
 	auto res = context->Map(screenCopyTexture, subresource, D3D11_MAP_READ_WRITE, 0, &resource);
 
-	printf("RowPitch %d DepthPitch %d", resource.RowPitch, resource.DepthPitch);
+	printf("RowPitch %d\n", resource.RowPitch);
 
-	auto hFile = CreateFile(L"C:\\Users\\brab\\hippscreen.txt",                // name of the write
-		GENERIC_WRITE,          // open for writing
-		0,                      // do not share
-		NULL,                   // default security
-		OPEN_ALWAYS,             // create new file only
-		FILE_ATTRIBUTE_NORMAL,  // normal file
-		NULL);
+	//auto hFile = CreateFile(L"C:\\Users\\brab\\hippscreen.txt",                // name of the write
+	//	GENERIC_WRITE,          // open for writing
+	//	0,                      // do not share
+	//	NULL,                   // default security
+	//	OPEN_ALWAYS,             // create new file only
+	//	FILE_ATTRIBUTE_NORMAL,  // normal file
+	//	NULL);
 
-	if (hFile == INVALID_HANDLE_VALUE)
-	{
-		OutputDebugString(L"invalid file! ");
-		auto err = GetLastError();
-		return;
-	}
+	//if (hFile == INVALID_HANDLE_VALUE)
+	//{
+	//	OutputDebugString(L"invalid file! ");
+	//	auto err = GetLastError();
+	//	return;
+	//}
 
-	DWORD dwBytesWritten = 0;
+	//DWORD dwBytesWritten = 0;
 
-	auto  bErrorFlag = WriteFile(
-		hFile,           // open file handle
-		resource.pData,      // start of data to write
-		resource.RowPitch * screenHeight,  // number of bytes to write
-		&dwBytesWritten, // number of bytes that were written
-		NULL);
+	//auto  bErrorFlag = WriteFile(
+	//	hFile,           // open file handle
+	//	resource.pData,      // start of data to write
+	//	resource.RowPitch * screenHeight,  // number of bytes to write
+	//	&dwBytesWritten, // number of bytes that were written
+	//	NULL);
 
 
 
-	CloseHandle(hFile);
+	//CloseHandle(hFile);
 
 	//memcpy(rawBuffer, resource.pData, screenWidth * screenHeight * 4);
 
+
+}
+
+void unMap()
+{
 	context->Unmap(screenCopyTexture, subresource);
 }
 
@@ -206,6 +192,9 @@ static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 		break;
 	case 2:
 		ssMap();
+		break;
+	case 3:
+		unMap();
 		break;
 	}
 }
